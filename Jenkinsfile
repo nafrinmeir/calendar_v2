@@ -4,9 +4,12 @@ pipeline {
     environment {
         RELEASE_NAME = "my-calendar"
         CHART_DIR = "./calendar-chart"
-        // הגדרה ישירה של הנתיב ל-Helm
+        
+        // נותן לג'נקינס את "המפתח" לקוברנטיס של Docker Desktop
+        KUBECONFIG = "C:\\Users\\MyPc\\.kube\\config"
+        
+        // למקרה שעדיין צריך את הניתוב הישיר
         HELM_CMD = "C:\\Helm\\helm.exe"
-        // HELM_CMD = "C:\\Helm\\"
     }
 
     stages {
@@ -32,23 +35,10 @@ pipeline {
             }
         }
 
-
-
-        stage('Hello_helm') {
-            steps {
-                script {
-                bat 'helm'
-                }
-            }
-        }
-
-
-        
         stage('Deploy to K8s (Helm)') {
             steps {
                 script {
-                    echo "🚀 Deploying with Helm using absolute path..."
-                    // שימוש במשתנה הסביבה שמצביע לנתיב המלא
+                    echo "🚀 Deploying with Helm..."
                     bat "\"${HELM_CMD}\" upgrade --install ${RELEASE_NAME} ${CHART_DIR}"
                 }
             }
@@ -58,9 +48,13 @@ pipeline {
             steps {
                 script {
                     echo "🔄 Restarting pods to pull the new images..."
-                    bat 'kubectl rollout restart deployment calendar-api'
-                    bat 'kubectl rollout restart deployment calendar-front'
-                    bat 'kubectl rollout restart deployment dashboard'
+                    
+                    // הוספנו את ה-KUBECONFIG גם לפקודות ה-kubectl ליתר ביטחון
+                    withEnv(["KUBECONFIG=${env.KUBECONFIG}"]) {
+                        bat 'kubectl rollout restart deployment calendar-api'
+                        bat 'kubectl rollout restart deployment calendar-front'
+                        bat 'kubectl rollout restart deployment dashboard'
+                    }
                 }
             }
         }
