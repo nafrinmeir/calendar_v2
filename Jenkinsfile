@@ -5,7 +5,7 @@ pipeline {
         RELEASE_NAME = "my-calendar"
         CHART_DIR = "./calendar-chart"
         // הגדרה ישירה של הנתיב ל-Helm
-        // HELM_CMD = "C:\\Helm\\helm.exe"
+        HELM_CMD = "C:\\Helm\\helm.exe"
         // HELM_CMD = "C:\\Helm\\"
     }
 
@@ -49,7 +49,7 @@ pipeline {
                 script {
                     echo "🚀 Deploying with Helm using absolute path..."
                     // שימוש במשתנה הסביבה שמצביע לנתיב המלא
-                    bat "helm upgrade --install ${RELEASE_NAME} ${CHART_DIR}"
+                    bat "\"${HELM_CMD}\" upgrade --install ${RELEASE_NAME} ${CHART_DIR}"
                 }
             }
         }
