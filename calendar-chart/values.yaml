@@ -1,0 +1,28 @@
+# הגדרות מרכזיות לכל המערכת
+
+mongodb:
+  image: mongo:latest
+  port: 27017
+  # שם מסד נתונים נפרד לחלוטין עבור K8s
+  dbName: calendar_k8s_db
+
+api:
+  image: calendar-api:latest
+  pullPolicy: Never
+  targetPort: 5001
+  servicePort: 5011
+  replicas: 1
+
+front:
+  image: calendar-front:latest
+  pullPolicy: Never
+  targetPort: 5002
+  servicePort: 5012
+  replicas: 1
+
+dashboard:
+  image: dashboard:latest
+  pullPolicy: Never
+  targetPort: 5000
+  servicePort: 5010
+  replicas: 1

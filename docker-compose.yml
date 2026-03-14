@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+
+  calendar_api:
+    build: ./calendar_api
+    container_name: calendar_api
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/calendar_db
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  calendar_front:
+      build: ./calendar_front
+      container_name: calendar_front
+      environment:
+        # התיקון: חייבים להשתמש ב-localhost כדי שהדפדפן יידע לאן לפנות
+        - API_URL=http://localhost:5001
+      ports:
+        - "5002:5002"
+      depends_on:
+        - calendar_api
+      networks:
+        - app-network
+
+  dashboard:
+    build: ./dashboard
+    container_name: dashboard
+    environment:
+      - FRONT_URL=http://calendar_front:5002/health
+      - API_URL=http://calendar_api:5001/health
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

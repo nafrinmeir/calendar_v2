@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>לוח שנה חכם</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --fc-button-bg-color: #3b82f6; --fc-button-border-color: #2563eb; --fc-button-hover-bg-color: #2563eb; }
+        .fc-toolbar-title { font-size: 1.5rem !important; color: #1e3a8a; font-weight: bold; }
+        .fc-event { cursor: pointer; border-radius: 4px; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8 font-sans">
+    <div class="max-w-6xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-2xl border border-gray-100">
+        <h1 class="text-4xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
+            מערכת ניהול זמנים
+        </h1>
+        <div id='calendar'></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            
+            // התיקון הקריטי: הכתובת נשאבת אוטומטית מקוד הפייתון
+            // בדוקר היא תהיה 5001, ובקוברנטיס 5011
+            const API_URL = '{{ api_url }}/events';
+            
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: { today: 'היום', month: 'חודש', week: 'שבוע', day: 'יום' },
+                events: API_URL,
+                editable: true,
+                selectable: true,
+                slotMinTime: '07:00:00',
+                slotMaxTime: '22:00:00',
+                
+                select: async function(info) {
+                    const { value: title } = await Swal.fire({
+                        title: 'אירוע חדש',
+                        input: 'text',
+                        inputPlaceholder: 'הזן את שם האירוע...',
+                        showCancelButton: true,
+                        confirmButtonText: 'שמור',
+                        cancelButtonText: 'ביטול',
+                        confirmButtonColor: '#3b82f6'
+                    });
+
+                    if (title) {
+                        fetch(API_URL, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                title: title, 
+                                start: info.startStr,
+                                end: info.endStr,
+                                allDay: info.allDay
+                            })
+                        }).then(() => calendar.refetchEvents());
+                    }
+                    calendar.unselect();
+                },
+
+                eventClick: function(info) {
+                    Swal.fire({
+                        title: info.event.title,
+                        text: "מה תרצה לעשות עם האירוע?",
+                        icon: 'question',
+                        showDenyButton: true,
+                        showCancelButton: true,
+                        confirmButtonText: '✏️ ערוך שם',
+                        denyButtonText: '🗑️ מחק אירוע',
+                        cancelButtonText: 'ביטול',
+                        confirmButtonColor: '#10b981',
+                        denyButtonColor: '#ef4444'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            const { value: newTitle } = await Swal.fire({
+                                title: 'שנה שם אירוע',
+                                input: 'text',
+                                inputValue: info.event.title,
+                                showCancelButton: true,
+                                confirmButtonText: 'עדכן'
+                            });
+                            if (newTitle) {
+                                fetch(`${API_URL}/${info.event.id}`, {
+                                    method: 'PUT',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({ title: newTitle })
+                                }).then(() => calendar.refetchEvents());
+                            }
+                        } else if (result.isDenied) {
+                            fetch(`${API_URL}/${info.event.id}`, { method: 'DELETE' })
+                                .then(() => calendar.refetchEvents());
+                        }
+                    });
+                },
+
+                eventDrop: function(info) {
+                    fetch(`${API_URL}/${info.event.id}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            start: info.event.startStr,
+                            end: info.event.endStr || null,
+                            allDay: info.event.allDay
+                        })
+                    });
+                },
+                
+                eventResize: function(info) {
+                    fetch(`${API_URL}/${info.event.id}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            start: info.event.startStr,
+                            end: info.event.endStr,
+                            allDay: info.event.allDay
+                        })
+                    });
+                }
+            });
+            calendar.render();
+        });
+    </script>
+</body>
+</html>
