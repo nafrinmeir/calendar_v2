@@ -20,22 +20,22 @@ mongodb:
   dbName: calendar_k8s_db
 
 api:
-  image: calendar-api:latest
-  pullPolicy: Never
+  image: nafrin/calendar-api:latest
+  pullPolicy: Always
   targetPort: 5001
   servicePort: 5011
   replicas: 1
 
 front:
-  image: calendar-front:latest
-  pullPolicy: Never
+  image: nafrin/calendar-front:latest
+  pullPolicy: Always
   targetPort: 5002
   servicePort: 5012
   replicas: 1
 
 dashboard:
-  image: dashboard:latest
-  pullPolicy: Never
+  image: nafrin/dashboard:latest
+  pullPolicy: Always
   targetPort: 5000
   servicePort: 5010
   replicas: 1
@@ -202,4 +202,4 @@ for file_path, content in helm_structure.items():
     with open(full_path, "w", encoding="utf-8") as f:
         f.write(content)
 
-print("✅ Helm Chart updated with LoadBalancers and external links!")
+print("✅ Helm Chart updated with LoadBalancers, external links, and APP_VERSION!")
