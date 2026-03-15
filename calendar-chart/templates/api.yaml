@@ -4,6 +4,7 @@ metadata:
   name: calendar-api
 spec:
   replicas: {{ .Values.api.replicas }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: calendar-api
