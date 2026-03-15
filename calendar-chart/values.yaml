@@ -2,6 +2,9 @@
 
 appVersion: "latest"
 
+# שומר רק את הגרסה הנוכחית + 2 קודמות כדי לא ללכלך את הקלסטר
+revisionHistoryLimit: 2
+
 mongodb:
   image: mongo:latest
   port: 27017
