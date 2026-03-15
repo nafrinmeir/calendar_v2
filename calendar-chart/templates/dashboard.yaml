@@ -4,6 +4,7 @@ metadata:
   name: dashboard
 spec:
   replicas: {{ .Values.dashboard.replicas }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: dashboard
