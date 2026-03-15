@@ -4,13 +4,12 @@ import os
 
 app = Flask(__name__)
 
-# כתובות פנימיות - לאיסוף סטטוסים בתוך הרשת של קוברנטיס
 FRONT_URL = os.getenv("FRONT_URL", "http://calendar-front:5002/health")
 API_URL = os.getenv("API_URL", "http://calendar-api:5001/health")
-
-# כתובות חיצוניות - עבור הלינקים שהמשתמש לוחץ עליהם בדפדפן
 EXT_FRONT_URL = os.getenv("EXT_FRONT_URL", "http://localhost:5002")
 EXT_API_URL = os.getenv("EXT_API_URL", "http://localhost:5001")
+# קורא את מספר הגרסה שקוברנטיס יזריק לו (ברירת מחדל v1.0)
+APP_VERSION = os.getenv("APP_VERSION", "v1.0") 
 
 def check_service(url):
     try:
@@ -31,7 +30,8 @@ def dashboard():
                            api=api_status, 
                            db=db_status,
                            ext_front=EXT_FRONT_URL,
-                           ext_api=EXT_API_URL)
+                           ext_api=EXT_API_URL,
+                           app_version=APP_VERSION) # מעביר את הגרסה ל-HTML
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
