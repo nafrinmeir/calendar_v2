@@ -7,7 +7,6 @@ pipeline {
         CHART_DIR = "./calendar-chart"
         KUBECONFIG = "C:\\Users\\MyPc\\.kube\\config"
         HELM_CMD = "C:\\Helm\\helm.exe"
-        // יצירת תגית ייחודית לכל ריצה לפי מספר הבילד בג'נקינס (למשל: v23)
         IMAGE_TAG = "v${env.BUILD_ID}"
     }
 
@@ -23,7 +22,6 @@ pipeline {
             steps {
                 script {
                     echo "🛠️ Building Images locally with dynamic tag: ${IMAGE_TAG}..."
-                    // אנחנו בונים עם התגית הייחודית של הבילד הזה
                     bat "docker build -t calendar-api:${IMAGE_TAG} ./calendar_api"
                     bat "docker build -t calendar-front:${IMAGE_TAG} ./calendar_front"
                     bat "docker build -t dashboard:${IMAGE_TAG} ./dashboard"
@@ -79,13 +77,13 @@ pipeline {
                 script {
                     echo "🚀 Deploying with Helm directly from Docker Hub..."
                     withEnv(["KUBECONFIG=${env.KUBECONFIG}"]) {
-                        // הזרקת התגית החדשה ישירות ל-Helm!
-                        // זה מה שאומר לקוברנטיס: "לך ל-Docker Hub ותביא בדיוק את התגית הזו!"
+                        // הוספנו את השורה האחרונה שדוחפת את הגרסה פנימה!
                         bat """
                         \"${HELM_CMD}\" upgrade --install ${RELEASE_NAME} ${CHART_DIR} \
                         --set api.image=${DOCKERHUB_USER}/calendar-api:${IMAGE_TAG} \
                         --set front.image=${DOCKERHUB_USER}/calendar-front:${IMAGE_TAG} \
-                        --set dashboard.image=${DOCKERHUB_USER}/dashboard:${IMAGE_TAG}
+                        --set dashboard.image=${DOCKERHUB_USER}/dashboard:${IMAGE_TAG} \
+                        --set appVersion=${IMAGE_TAG}
                         """
                     }
                 }
@@ -93,12 +91,20 @@ pipeline {
         }
     }
 
+    // הלינקים שביקשת! מודפסים יפה בסיום המוצלח של הפייפליין
     post {
         success {
-            echo "🎉 SUCCESS! Version ${IMAGE_TAG} is live on K8s!"
+            echo "==================================================="
+            echo "🎉 SUCCESS! The system was deployed successfully."
+            echo "🔖 Deployed Version: ${IMAGE_TAG}"
+            echo ""
+            echo "🌐 ACCESS YOUR SYSTEM HERE:"
+            echo "📊 Dashboard (Live Architecture): http://localhost:5010"
+            echo "📅 Calendar Frontend (App):       http://localhost:5012"
+            echo "==================================================="
         }
         failure {
-            echo "❌ FAILED! Pipeline stopped."
+            echo "❌ FAILED! Pipeline stopped. K8s remains on the previous stable version."
         }
     }
 }
