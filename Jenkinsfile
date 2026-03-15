@@ -32,21 +32,23 @@ pipeline {
             steps {
                 script {
                     echo "🚀 Starting temporary containers for ALL services..."
-                    // מרימים את כולם במקביל על פורטים זמניים שלא מתנגשים עם כלום
-                    bat 'docker run -d --name temp-api -p 5091:5001 calendar-api:latest'
+                    
+                    // הזרקת serverSelectionTimeoutMS=2000 גורמת למונגו לוותר אחרי 2 שניות במקום 30
+                    bat 'docker run -d --name temp-api -e MONGO_URI="mongodb://127.0.0.1:27017/db?serverSelectionTimeoutMS=2000" -p 5091:5001 calendar-api:latest'
+                    
                     bat 'docker run -d --name temp-front -p 5092:5002 calendar-front:latest'
-                    bat 'docker run -d --name temp-dash -p 5090:5000 dashboard:latest'
+                    
+                    // מפנים את הדשבורד לכתובת פיקטיבית כדי שייכשל מיד ויחזיר מסך בלי להיתקע
+                    bat 'docker run -d --name temp-dash -e FRONT_URL="http://127.0.0.1:5002/health" -e API_URL="http://127.0.0.1:5001/health" -p 5090:5000 dashboard:latest'
                     
                     try {
                         echo "🧪 Running Tests against all temporary containers..."
-                        // מריצים את פקודת הטסטים מול שלושתם
                         bat '''
                         docker run --rm -v "%WORKSPACE%:/app" -w /app python:3.9-slim sh -c "pip install pytest requests && pytest test_services.py -v -s"
                         '''
                         echo "✅ All 3 tests passed! The images are totally solid."
                     } finally {
                         echo "🧹 Cleaning up temporary containers..."
-                        // גם אם טסט נכשל, אנחנו מוחקים את כל ה-3 כדי לא להשאיר זבל בשרת
                         bat 'docker rm -f temp-api temp-front temp-dash'
                     }
                 }
