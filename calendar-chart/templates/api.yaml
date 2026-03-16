@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calendar-api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: calendar-api
+  template:
+    metadata:
+      labels:
+        app: calendar-api
+    spec:
+      containers:
+      - name: calendar-api
+        image: {{ .Values.api.image }}
+        imagePullPolicy: {{ .Values.api.pullPolicy }}
+        env:
+        - name: MONGO_URI
+          value: "mongodb://mongodb:{{ .Values.mongodb.port }}/{{ .Values.mongodb.dbName }}"
+        ports:
+        - containerPort: {{ .Values.api.targetPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calendar-api
+spec:
+  type: ClusterIP # שירות פנימי בלבד!
+  selector:
+    app: calendar-api
+  ports:
+  - port: {{ .Values.api.servicePort }}
+    targetPort: {{ .Values.api.targetPort }}
