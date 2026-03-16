@@ -8,6 +8,13 @@ pipeline {
         KUBECONFIG = "C:\\Users\\MyPc\\.kube\\config"
         HELM_CMD = "C:\\Helm\\helm.exe"
         IMAGE_TAG = "v${env.BUILD_ID}"
+        
+        // --- הגדרות GCP החדשות ---
+        // מפנה את ג'נקינס לתיקיית ההתחברות של המשתמש שלך (ודא ש-MyPc זה שם המשתמש הנכון)
+        CLOUDSDK_CONFIG = "C:\\Users\\MyPc\\AppData\\Roaming\\gcloud"
+        GCP_PROJECT = "dgt-gcp-moe-it-labs-gke"
+        GKE_CLUSTER = "test-gke-cluster"
+        GKE_REGION = "me-west1"
     }
 
     stages {
@@ -58,12 +65,11 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'docker_hub_user', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
                         
-                        echo "🏷️ Tagging images with Docker Hub username and Build ID..."
+                        echo "🏷️ Tagging and Pushing images to Docker Hub..."
                         bat "docker tag calendar-api:${IMAGE_TAG} ${DOCKERHUB_USER}/calendar-api:${IMAGE_TAG}"
                         bat "docker tag calendar-front:${IMAGE_TAG} ${DOCKERHUB_USER}/calendar-front:${IMAGE_TAG}"
                         bat "docker tag dashboard:${IMAGE_TAG} ${DOCKERHUB_USER}/dashboard:${IMAGE_TAG}"
 
-                        echo "☁️ Pushing validated images to Docker Hub..."
                         bat "docker push ${DOCKERHUB_USER}/calendar-api:${IMAGE_TAG}"
                         bat "docker push ${DOCKERHUB_USER}/calendar-front:${IMAGE_TAG}"
                         bat "docker push ${DOCKERHUB_USER}/dashboard:${IMAGE_TAG}"
@@ -72,12 +78,17 @@ pipeline {
             }
         }
 
-        stage('Deploy to K8s (Helm)') {
+        stage('Deploy to GCP (GKE)') {
             steps {
                 script {
-                    echo "🚀 Deploying with Helm directly from Docker Hub..."
-                    withEnv(["KUBECONFIG=${env.KUBECONFIG}"]) {
-                        // הוספנו את השורה האחרונה שדוחפת את הגרסה פנימה!
+                    echo "🌍 Connecting to Google Kubernetes Engine..."
+                    // שימוש במשתני הסביבה של KUBECONFIG ו-CLOUDSDK_CONFIG כדי לזייף את סביבת המשתמש שלך
+                    withEnv(["KUBECONFIG=${env.KUBECONFIG}", "CLOUDSDK_CONFIG=${env.CLOUDSDK_CONFIG}"]) {
+                        
+                        // פקודת ההתחברות לקלסטר שהבאת לי
+                        bat "gcloud container clusters get-credentials ${GKE_CLUSTER} --region ${GKE_REGION} --project ${GCP_PROJECT} --dns-endpoint"
+
+                        echo "🚀 Deploying with Helm to the cloud..."
                         bat """
                         \"${HELM_CMD}\" upgrade --install ${RELEASE_NAME} ${CHART_DIR} \
                         --set api.image=${DOCKERHUB_USER}/calendar-api:${IMAGE_TAG} \
@@ -91,20 +102,18 @@ pipeline {
         }
     }
 
-    // הלינקים שביקשת! מודפסים יפה בסיום המוצלח של הפייפליין
     post {
         success {
             echo "==================================================="
-            echo "🎉 SUCCESS! The system was deployed successfully."
+            echo "🎉 SUCCESS! The system was deployed to GOOGLE CLOUD!"
             echo "🔖 Deployed Version: ${IMAGE_TAG}"
             echo ""
-            echo "🌐 ACCESS YOUR SYSTEM HERE:"
-            echo "📊 Dashboard (Live Architecture): http://localhost:5010"
-            echo "📅 Calendar Frontend (App):       http://localhost:5012"
+            echo "⚠️  NOTE: You are now on a real cloud cluster."
+            echo "Run 'kubectl get svc' in your terminal to find your REAL Public IPs!"
             echo "==================================================="
         }
         failure {
-            echo "❌ FAILED! Pipeline stopped. K8s remains on the previous stable version."
+            echo "❌ FAILED! Pipeline stopped."
         }
     }
 }
