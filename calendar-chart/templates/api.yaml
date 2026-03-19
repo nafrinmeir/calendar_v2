@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calendar-api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: calendar-api
+  template:
+    metadata:
+      labels:
+        app: calendar-api
+    spec:
+      containers:
+      - name: calendar-api
+        image: {{ .Values.api.image }}
+        imagePullPolicy: {{ .Values.api.pullPolicy }}
+        resources: # הגדרת המשאבים בפועל
+          requests:
+            cpu: {{ .Values.api.resources.requests.cpu }}
+            memory: {{ .Values.api.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.api.resources.limits.cpu }}
+            memory: {{ .Values.api.resources.limits.memory }}
+        env:
+        - name: MONGO_URI
+          value: "mongodb://mongodb:{{ .Values.mongodb.port }}/{{ .Values.mongodb.dbName }}"
+        ports:
+        - containerPort: {{ .Values.api.targetPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calendar-api
+spec:
+  type: ClusterIP
+  selector:
+    app: calendar-api
+  ports:
+  - port: {{ .Values.api.servicePort }}
+    targetPort: {{ .Values.api.targetPort }}
+---
+{{- if .Values.api.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: calendar-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: calendar-api
+  minReplicas: {{ .Values.api.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.api.autoscaling.maxReplicas }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.api.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

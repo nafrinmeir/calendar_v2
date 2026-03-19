@@ -1,0 +1,43 @@
+# הגדרות מרכזיות לכל המערכת
+
+appVersion: "latest"
+revisionHistoryLimit: 2
+
+mongodb:
+  image: mongo:latest
+  port: 27017
+  dbName: calendar_k8s_db
+
+api:
+  image: nafrin/calendar-api:latest
+  pullPolicy: Always
+  targetPort: 5001
+  servicePort: 5011
+  replicas: 1
+  # --- תוספת חדשה: הגבלת משאבים ואוטו-סקיילינג ---
+  resources:
+    requests:
+      cpu: 50m       # 5% מליבה של מעבד (מינימום מובטח)
+      memory: 128Mi
+    limits:
+      cpu: 200m      # 20% מליבה של מעבד (מקסימום מותר)
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 1   # מינימום פודים באוויר
+    maxReplicas: 5   # מקסימום פודים באוויר תחת עומס
+    targetCPUUtilizationPercentage: 50 # אם הממוצע עובר 50% מה-50m שהקצינו, תוסיף עוד פוד!
+
+front:
+  image: nafrin/calendar-front:latest
+  pullPolicy: Always
+  targetPort: 5002
+  servicePort: 5012
+  replicas: 1
+
+dashboard:
+  image: nafrin/dashboard:latest
+  pullPolicy: Always
+  targetPort: 5000
+  servicePort: 5010
+  replicas: 1
