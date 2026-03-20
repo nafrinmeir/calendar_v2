@@ -7,6 +7,11 @@ mongodb:
   image: mongo:latest
   port: 27017
   dbName: calendar_k8s_db
+  # התוספת החדשה: 
+  persistence:
+    enabled: true
+    size: 1Gi
+
 
 api:
   image: nafrin/calendar-api:latest
